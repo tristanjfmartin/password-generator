@@ -86,3 +86,37 @@ def test_generate_passphrase_words_from_list():
     result = generate_passphrase(5)
     for word in result.split("-"):
         assert word in WORD_LIST
+
+
+# --- Words mode route tests ---
+
+def test_generate_words_mode_returns_passphrase(client):
+    response = client.post("/generate", json={"mode": "words", "word_count": 4})
+    assert response.status_code == 200
+    data = response.get_json()
+    assert "password" in data
+    assert len(data["password"].split("-")) == 4
+
+
+def test_generate_words_mode_rejects_count_too_low(client):
+    response = client.post("/generate", json={"mode": "words", "word_count": 2})
+    assert response.status_code == 400
+    assert "error" in response.get_json()
+
+
+def test_generate_words_mode_rejects_count_too_high(client):
+    response = client.post("/generate", json={"mode": "words", "word_count": 11})
+    assert response.status_code == 400
+    assert "error" in response.get_json()
+
+
+def test_generate_words_mode_rejects_boolean_count(client):
+    response = client.post("/generate", json={"mode": "words", "word_count": True})
+    assert response.status_code == 400
+    assert "error" in response.get_json()
+
+
+def test_generate_random_mode_backward_compatible(client):
+    response = client.post("/generate", json={"length": 12, "use_upper": True, "use_digits": True, "use_symbols": True})
+    assert response.status_code == 200
+    assert "password" in response.get_json()
