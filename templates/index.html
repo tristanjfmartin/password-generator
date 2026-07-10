@@ -1,2 +1,281 @@
 <!DOCTYPE html>
-<html><body><h1>Password Generator</h1></body></html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Password Generator</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 1.25rem;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+      padding: 2.5rem 2rem;
+      width: 100%;
+      max-width: 420px;
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #1e1b4b;
+      margin-bottom: 1.75rem;
+      text-align: center;
+    }
+
+    /* Length slider */
+    .length-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.5rem;
+    }
+    .length-row label { font-size: 0.9rem; color: #4b5563; font-weight: 500; }
+    .length-value {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: #fff;
+      font-weight: 700;
+      font-size: 0.9rem;
+      border-radius: 0.4rem;
+      padding: 0.15rem 0.55rem;
+      min-width: 2.2rem;
+      text-align: center;
+    }
+    input[type="range"] {
+      width: 100%;
+      accent-color: #6366f1;
+      margin-bottom: 1.5rem;
+      cursor: pointer;
+    }
+
+    /* Toggle switches */
+    .toggles { display: flex; gap: 0.75rem; margin-bottom: 1.75rem; flex-wrap: wrap; }
+    .toggle-label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+      font-size: 0.875rem;
+      color: #374151;
+      font-weight: 500;
+      user-select: none;
+    }
+    .toggle-label input { display: none; }
+    .switch {
+      width: 2.5rem;
+      height: 1.4rem;
+      background: #d1d5db;
+      border-radius: 9999px;
+      position: relative;
+      transition: background 0.2s ease;
+      flex-shrink: 0;
+    }
+    .switch::after {
+      content: '';
+      position: absolute;
+      top: 0.2rem;
+      left: 0.2rem;
+      width: 1rem;
+      height: 1rem;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform 0.2s ease;
+    }
+    .toggle-label input:checked + .switch { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
+    .toggle-label input:checked + .switch::after { transform: translateX(1.1rem); }
+
+    /* Generate button */
+    #generateBtn {
+      width: 100%;
+      padding: 0.85rem;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 0.75rem;
+      cursor: pointer;
+      transition: opacity 0.15s ease, transform 0.1s ease;
+      margin-bottom: 1.5rem;
+    }
+    #generateBtn:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+    #generateBtn:active:not(:disabled) { transform: translateY(0); }
+    #generateBtn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    /* Password output */
+    .output-row {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+    #passwordOutput {
+      flex: 1;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 0.95rem;
+      padding: 0.7rem 0.9rem;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 0.6rem;
+      background: #f9fafb;
+      color: #111827;
+      outline: none;
+      min-width: 0;
+    }
+    #copyBtn {
+      background: none;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 0.6rem;
+      padding: 0.65rem 0.75rem;
+      cursor: pointer;
+      color: #6366f1;
+      font-size: 1.1rem;
+      transition: background 0.15s, color 0.15s;
+      flex-shrink: 0;
+    }
+    #copyBtn:hover { background: #f0f0ff; }
+
+    /* Error / info messages */
+    #message {
+      margin-top: 0.75rem;
+      font-size: 0.8rem;
+      min-height: 1.2em;
+      text-align: center;
+    }
+    #message.error { color: #dc2626; }
+    #message.success { color: #16a34a; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Password Generator</h1>
+
+    <!-- Length -->
+    <div class="length-row">
+      <label for="lengthSlider">Length</label>
+      <span class="length-value" id="lengthDisplay">12</span>
+    </div>
+    <input type="range" id="lengthSlider" min="8" max="64" value="12" />
+
+    <!-- Toggles -->
+    <div class="toggles">
+      <label class="toggle-label">
+        <input type="checkbox" id="upperToggle" checked />
+        <span class="switch"></span>
+        Uppercase
+      </label>
+      <label class="toggle-label">
+        <input type="checkbox" id="digitsToggle" checked />
+        <span class="switch"></span>
+        Digits
+      </label>
+      <label class="toggle-label">
+        <input type="checkbox" id="symbolsToggle" checked />
+        <span class="switch"></span>
+        Symbols
+      </label>
+    </div>
+
+    <!-- Generate -->
+    <button id="generateBtn">Generate Password</button>
+
+    <!-- Output -->
+    <div class="output-row">
+      <input type="text" id="passwordOutput" readonly placeholder="Your password will appear here" />
+      <button id="copyBtn" title="Copy to clipboard">&#128203;</button>
+    </div>
+
+    <div id="message"></div>
+  </div>
+
+  <script>
+    const slider = document.getElementById('lengthSlider');
+    const display = document.getElementById('lengthDisplay');
+    const upperToggle = document.getElementById('upperToggle');
+    const digitsToggle = document.getElementById('digitsToggle');
+    const symbolsToggle = document.getElementById('symbolsToggle');
+    const generateBtn = document.getElementById('generateBtn');
+    const passwordOutput = document.getElementById('passwordOutput');
+    const copyBtn = document.getElementById('copyBtn');
+    const message = document.getElementById('message');
+
+    // Update length display live
+    slider.addEventListener('input', () => {
+      display.textContent = slider.value;
+    });
+
+    // Disable generate if all toggles are off
+    function updateGenerateBtn() {
+      const anyOn = upperToggle.checked || digitsToggle.checked || symbolsToggle.checked;
+      generateBtn.disabled = !anyOn;
+      if (!anyOn) {
+        showMessage('Select at least one character type', 'error');
+      } else {
+        clearMessage();
+      }
+    }
+
+    [upperToggle, digitsToggle, symbolsToggle].forEach(t =>
+      t.addEventListener('change', updateGenerateBtn)
+    );
+
+    generateBtn.addEventListener('click', async () => {
+      clearMessage();
+      generateBtn.textContent = 'Generating…';
+      generateBtn.disabled = true;
+
+      try {
+        const res = await fetch('/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            length: parseInt(slider.value),
+            use_upper: upperToggle.checked,
+            use_digits: digitsToggle.checked,
+            use_symbols: symbolsToggle.checked,
+          }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          showMessage(data.error || 'Something went wrong, try again', 'error');
+        } else {
+          passwordOutput.value = data.password;
+        }
+      } catch {
+        showMessage('Something went wrong, try again', 'error');
+      } finally {
+        generateBtn.textContent = 'Generate Password';
+        updateGenerateBtn();
+      }
+    });
+
+    copyBtn.addEventListener('click', () => {
+      if (!passwordOutput.value) return;
+      navigator.clipboard.writeText(passwordOutput.value).then(() => {
+        copyBtn.textContent = '✓';
+        setTimeout(() => { copyBtn.innerHTML = '&#128203;'; }, 1500);
+      });
+    });
+
+    function showMessage(text, type) {
+      message.textContent = text;
+      message.className = type;
+    }
+
+    function clearMessage() {
+      message.textContent = '';
+      message.className = '';
+    }
+  </script>
+</body>
+</html>
