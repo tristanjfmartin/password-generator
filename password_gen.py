@@ -19,5 +19,5 @@ def generate_password(length=12, use_upper=True, use_digits=True, use_symbols=Tr
     return password
 
 
-def generate_passphrase(word_count=4):
+def generate_passphrase(word_count=5):
     return "-".join(secrets.choice(WORD_LIST) for _ in range(word_count))
