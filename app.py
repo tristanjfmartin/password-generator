@@ -14,7 +14,7 @@ def generate():
     data = request.get_json(silent=True) or {}
     length = data.get("length", 12)
 
-    if not isinstance(length, int) or not (8 <= length <= 64):
+    if not isinstance(length, int) or isinstance(length, bool) or not (8 <= length <= 64):
         return jsonify({"error": "Length must be an integer between 8 and 64"}), 400
 
     use_upper = bool(data.get("use_upper", True))

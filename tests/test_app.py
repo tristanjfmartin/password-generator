@@ -30,7 +30,9 @@ def test_generate_returns_password_of_correct_length(client):
 def test_generate_defaults_are_applied(client):
     response = client.post("/generate", json={"length": 12})
     assert response.status_code == 200
-    assert len(response.get_json()["password"]) == 12
+    password = response.get_json()["password"]
+    assert len(password) == 12
+    assert not password.islower()
 
 
 def test_generate_rejects_length_too_short(client):
@@ -56,3 +58,9 @@ def test_generate_lowercase_only_when_all_off(client):
     password = response.get_json()["password"]
     assert len(password) == 20
     assert all(c.islower() for c in password)
+
+
+def test_generate_rejects_boolean_length(client):
+    response = client.post("/generate", json={"length": True})
+    assert response.status_code == 400
+    assert "error" in response.get_json()
