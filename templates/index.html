@@ -152,36 +152,76 @@
     }
     #message.error { color: #dc2626; }
     #message.success { color: #16a34a; }
+
+    /* Mode toggle */
+    .mode-toggle {
+      display: flex;
+      border-radius: 0.75rem;
+      overflow: hidden;
+      border: 1.5px solid #e5e7eb;
+      margin-bottom: 1.75rem;
+    }
+    .mode-btn {
+      flex: 1;
+      padding: 0.6rem;
+      border: none;
+      background: #fff;
+      color: #6b7280;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+    .mode-btn.active {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: #fff;
+    }
   </style>
 </head>
 <body>
   <div class="card">
     <h1>Password Generator</h1>
 
-    <!-- Length -->
-    <div class="length-row">
-      <label for="lengthSlider">Length</label>
-      <span class="length-value" id="lengthDisplay">12</span>
+    <!-- Mode toggle -->
+    <div class="mode-toggle">
+      <button id="modeRandom" class="mode-btn active">Random</button>
+      <button id="modeWords" class="mode-btn">Words</button>
     </div>
-    <input type="range" id="lengthSlider" min="8" max="64" value="12" />
 
-    <!-- Toggles -->
-    <div class="toggles">
-      <label class="toggle-label">
-        <input type="checkbox" id="upperToggle" checked />
-        <span class="switch"></span>
-        Uppercase
-      </label>
-      <label class="toggle-label">
-        <input type="checkbox" id="digitsToggle" checked />
-        <span class="switch"></span>
-        Digits
-      </label>
-      <label class="toggle-label">
-        <input type="checkbox" id="symbolsToggle" checked />
-        <span class="switch"></span>
-        Symbols
-      </label>
+    <!-- Random controls -->
+    <div id="random-controls">
+      <div class="length-row">
+        <label for="lengthSlider">Length</label>
+        <span class="length-value" id="lengthDisplay">12</span>
+      </div>
+      <input type="range" id="lengthSlider" min="8" max="64" value="12" />
+
+      <div class="toggles">
+        <label class="toggle-label">
+          <input type="checkbox" id="upperToggle" checked />
+          <span class="switch"></span>
+          Uppercase
+        </label>
+        <label class="toggle-label">
+          <input type="checkbox" id="digitsToggle" checked />
+          <span class="switch"></span>
+          Digits
+        </label>
+        <label class="toggle-label">
+          <input type="checkbox" id="symbolsToggle" checked />
+          <span class="switch"></span>
+          Symbols
+        </label>
+      </div>
+    </div>
+
+    <!-- Word controls (hidden by default) -->
+    <div id="word-controls" style="display:none">
+      <div class="length-row">
+        <label for="wordCountSlider">Number of Words</label>
+        <span class="length-value" id="wordCountDisplay">5</span>
+      </div>
+      <input type="range" id="wordCountSlider" min="3" max="10" value="5" style="margin-bottom:1.75rem" />
     </div>
 
     <!-- Generate -->
@@ -193,7 +233,7 @@
       <button id="copyBtn" title="Copy to clipboard">&#128203;</button>
     </div>
 
-    <div id="message"></div>
+    <div id="message" aria-live="polite"></div>
   </div>
 
   <script>
@@ -206,14 +246,51 @@
     const passwordOutput = document.getElementById('passwordOutput');
     const copyBtn = document.getElementById('copyBtn');
     const message = document.getElementById('message');
+    const modeRandom = document.getElementById('modeRandom');
+    const modeWords = document.getElementById('modeWords');
+    const randomControls = document.getElementById('random-controls');
+    const wordControls = document.getElementById('word-controls');
+    const wordCountSlider = document.getElementById('wordCountSlider');
+    const wordCountDisplay = document.getElementById('wordCountDisplay');
 
-    // Update length display live
+    let currentMode = 'random';
+
+    // Length slider live update
     slider.addEventListener('input', () => {
       display.textContent = slider.value;
     });
 
-    // Disable generate if all toggles are off
+    // Word count slider live update
+    wordCountSlider.addEventListener('input', () => {
+      wordCountDisplay.textContent = wordCountSlider.value;
+    });
+
+    // Mode toggle
+    modeRandom.addEventListener('click', () => {
+      currentMode = 'random';
+      modeRandom.classList.add('active');
+      modeWords.classList.remove('active');
+      randomControls.style.display = '';
+      wordControls.style.display = 'none';
+      updateGenerateBtn();
+    });
+
+    modeWords.addEventListener('click', () => {
+      currentMode = 'words';
+      modeWords.classList.add('active');
+      modeRandom.classList.remove('active');
+      randomControls.style.display = 'none';
+      wordControls.style.display = '';
+      generateBtn.disabled = false;
+      clearMessage();
+    });
+
+    // Disable generate if all random toggles are off (only applies in random mode)
     function updateGenerateBtn() {
+      if (currentMode === 'words') {
+        generateBtn.disabled = false;
+        return;
+      }
       const anyOn = upperToggle.checked || digitsToggle.checked || symbolsToggle.checked;
       generateBtn.disabled = !anyOn;
       if (!anyOn) {
@@ -232,16 +309,20 @@
       generateBtn.textContent = 'Generating…';
       generateBtn.disabled = true;
 
+      const payload = currentMode === 'words'
+        ? { mode: 'words', word_count: parseInt(wordCountSlider.value, 10) }
+        : {
+            length: parseInt(slider.value, 10),
+            use_upper: upperToggle.checked,
+            use_digits: digitsToggle.checked,
+            use_symbols: symbolsToggle.checked,
+          };
+
       try {
         const res = await fetch('/generate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            length: parseInt(slider.value),
-            use_upper: upperToggle.checked,
-            use_digits: digitsToggle.checked,
-            use_symbols: symbolsToggle.checked,
-          }),
+          body: JSON.stringify(payload),
         });
 
         const data = await res.json();
@@ -256,7 +337,7 @@
       } finally {
         generateBtn.textContent = 'Generate Password';
         const anyOn = upperToggle.checked || digitsToggle.checked || symbolsToggle.checked;
-        generateBtn.disabled = !anyOn;
+        generateBtn.disabled = currentMode === 'words' ? false : !anyOn;
       }
     });
 
