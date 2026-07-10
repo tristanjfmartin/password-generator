@@ -64,3 +64,25 @@ def test_generate_rejects_boolean_length(client):
     response = client.post("/generate", json={"length": True})
     assert response.status_code == 400
     assert "error" in response.get_json()
+
+
+# --- Passphrase tests ---
+
+def test_generate_passphrase_correct_word_count():
+    from password_gen import generate_passphrase
+    result = generate_passphrase(4)
+    assert len(result.split("-")) == 4
+
+
+def test_generate_passphrase_uses_hyphens():
+    from password_gen import generate_passphrase
+    result = generate_passphrase(3)
+    assert result.count("-") == 2
+
+
+def test_generate_passphrase_words_from_list():
+    from password_gen import generate_passphrase
+    from words import WORD_LIST
+    result = generate_passphrase(5)
+    for word in result.split("-"):
+        assert word in WORD_LIST
