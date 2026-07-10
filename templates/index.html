@@ -255,7 +255,8 @@
         showMessage('Something went wrong, try again', 'error');
       } finally {
         generateBtn.textContent = 'Generate Password';
-        updateGenerateBtn();
+        const anyOn = upperToggle.checked || digitsToggle.checked || symbolsToggle.checked;
+        generateBtn.disabled = !anyOn;
       }
     });
 
@@ -264,6 +265,8 @@
       navigator.clipboard.writeText(passwordOutput.value).then(() => {
         copyBtn.textContent = '✓';
         setTimeout(() => { copyBtn.innerHTML = '&#128203;'; }, 1500);
+      }).catch(() => {
+        showMessage('Copy failed — select and copy manually', 'error');
       });
     });
 
